@@ -1,0 +1,295 @@
+﻿using eforms.common.datarows;
+using eforms.common.services;
+using eforms.us_gec_data_collection._server.model;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Web;
+
+namespace eforms.us_gec_data_collection._server.services
+{
+    internal class Token
+    {
+        [JsonProperty("access_token")]
+        public string AccessToken { get; set; }
+
+        [JsonProperty("token_type")]
+        public string TokenType { get; set; }
+
+        [JsonProperty("expires_in")]
+        public int ExpiresIn { get; set; }
+
+        [JsonProperty("refresh_token")]
+        public string RefreshToken { get; set; }
+    }
+    public class ServiceNowRequestService
+    {
+        private string _webServiceToken;
+        private string _snowReqSave;
+        private string _snowReqGet;
+        private string _snowGroupValidate;
+
+        private const string PARAM_GROUP = "SERVICE_AUTH";
+        private const string PARAM_WEB_SERVICE_TOKEN = "WEB_SERVICE_TOKEN";
+        private const string PARAM_SNOW_REQ_URL = "SNOW_REQ_SAVE_URL";
+        private const string PARAM_SNOW_GET_URL = "SNOW_REQ_GET_URL";
+        private const string PARAM_SNOW_GROUP_VALIDATE_URL = "SNOW_REQ_GROUP_VALIDATE_URL";
+
+        /// <summary>
+        /// Default constructor.
+        /// </summary>
+        public ServiceNowRequestService()
+        {
+
+            //Get the authentication parameters from the DB
+            ParamService pSvc = new ParamService();
+            ParamDataRow pRow = pSvc.getParamByGroupAndKey(PARAM_GROUP, PARAM_WEB_SERVICE_TOKEN);
+            ParamDataRow pRow2 = pSvc.getParamByGroupAndKey(PARAM_GROUP, PARAM_SNOW_REQ_URL);
+            ParamDataRow pRow3 = pSvc.getParamByGroupAndKey(PARAM_GROUP, PARAM_SNOW_GET_URL);
+            ParamDataRow pRow4 = pSvc.getParamByGroupAndKey(PARAM_GROUP, PARAM_SNOW_GROUP_VALIDATE_URL);
+
+            if (null != pRow)
+                _webServiceToken = pRow.ValueText;
+            if (null != pRow2)
+                _snowReqSave = pRow2.ValueText;
+            if (null != pRow3)
+                _snowReqGet = pRow3.ValueText;
+            if (null != pRow4)
+                _snowGroupValidate = pRow4.ValueText;
+
+            // _remedySvc.AuthenticationInfoValue = _authInfo;
+
+        }
+
+        /// <summary>
+        /// Common exception handler for all the methonds in this class.
+        /// Creates the detailed exception message and re-throw
+        /// </summary>
+        /// <param name="action"></param>
+        private void ServiceNowExceptionHandler(Action action)
+        {
+            try
+            {
+                action.Invoke();
+            }
+            catch (Exception ex)
+            {
+                string msg = "Error in invoking the ServiceNow service.";
+                msg += "\nSecurity Token :" + _webServiceToken;
+
+                throw new Exception(msg, ex);
+            }
+        }
+        public ServiceDetailsResponse GetServiceNowRequestDetails(string ticketId)
+        {
+            HttpClient clienta = new HttpClient();
+            
+
+            //New Code for APIGEE API call
+            string token = GetBearerToken();
+            clienta.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            #region DEV
+            //clienta.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+            //string URI = "https://haleon-api-dev.apigee.net/eap-servicenow-mgmt/v1/servicenow/sc_req_item?number="+ ticketId;
+            //string ApiKey = "YpFRjwqbNhYQXTLtn0FFyrAio2rjbamf";
+            //string user_name = "user_name=afb2t2081";
+            #endregion
+
+            #region TEST
+            clienta.DefaultRequestHeaders.Accept.Clear();
+            clienta.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+            string URI = "https://haleon-api-test.apigee.net/eap-servicenow-mgmt/v1/servicenow/sc_req_item?number=" + ticketId;
+            string ApiKey = "Dz74CWtywC54GGtYU4vGJI11GOLBCfOw";
+            string user_name = "user_name=afb2t2081";
+            #endregion
+
+            #region PROD
+            //clienta.DefaultRequestHeaders.Accept.Clear();
+            //clienta.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+            //string URI = "https://haleon-api-prod.apigee.net/eap-servicenow-mgmt/v1/servicenow/sc_req_item?number=" + ticketId;
+            //string ApiKey = "drDWcOAxOJJ3jpUWXhkdKpCie1RbU0nk";
+            //string user_name = "user_name=afb2t2081";
+            #endregion
+
+            clienta.DefaultRequestHeaders.Add("x-apikey", ApiKey);
+            clienta.DefaultRequestHeaders.Add("user", user_name);
+
+            var resdetails = clienta.GetAsync(URI).Result;
+
+            //var resdetails = clienta.GetAsync(_snowReqGet + "&apikey=" + _webServiceToken +"&number=" + ticketId).Result;
+            resdetails.EnsureSuccessStatusCode();
+            ServiceDetailsResponse jsonDetailsResponse = JsonConvert.DeserializeObject<ServiceDetailsResponse>(resdetails.Content.ReadAsStringAsync().Result.ToString());
+            return jsonDetailsResponse;
+        }
+
+
+        public int ValidateAssignmentGroup(string group)
+        {
+            HttpClient clienta = new HttpClient();
+            //clienta.DefaultRequestHeaders.Accept.Clear();
+            //clienta.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            //var resdetails = clienta.GetAsync(_snowGroupValidate + "&apikey=" + _webServiceToken + "&name=" + group).Result;
+
+            //New Code for APIGEE API call
+            clienta.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+            string token = GetBearerToken();
+            clienta.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            #region DEV
+            //string URI = "https://haleon-api-dev.apigee.net/eap-servicenow-mgmt/v1/servicenow/sys_user_group?name=" + group;
+            //string ApiKey = "YpFRjwqbNhYQXTLtn0FFyrAio2rjbamf";
+            //string user_name = "user_name=afb2t2081";
+            #endregion
+
+            #region TEST
+            string URI = "https://haleon-api-test.apigee.net/eap-servicenow-mgmt/v1/servicenow/sys_user_group?name=" + group;
+            string ApiKey = "Dz74CWtywC54GGtYU4vGJI11GOLBCfOw";
+            string user_name = "user_name=afb2t2081";
+            #endregion
+
+            #region PROD
+            //string URI = "https://haleon-api-prod.apigee.net/eap-servicenow-mgmt/v1/servicenow/sys_user_group?name=" + group;
+            //string ApiKey = "drDWcOAxOJJ3jpUWXhkdKpCie1RbU0nk";
+            //string user_name = "user_name=afb2t2081";
+            #endregion
+
+            clienta.DefaultRequestHeaders.Add("x-apikey", ApiKey);
+            clienta.DefaultRequestHeaders.Add("user", user_name);
+
+            var resdetails = clienta.GetAsync(URI).Result;
+
+            resdetails.EnsureSuccessStatusCode();
+            ServiceDetailsResponse jsonDetailsResponse = JsonConvert.DeserializeObject<ServiceDetailsResponse>(resdetails.Content.ReadAsStringAsync().Result.ToString());
+            return jsonDetailsResponse.result.Count();
+        }
+        public string GetBearerToken()
+        {
+            HttpClient client = new HttpClient();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded"));
+
+            #region DEV
+            //var dict = new Dictionary<string, string>();
+            //dict.Add("client_id", "YpFRjwqbNhYQXTLtn0FFyrAio2rjbamf");
+            //dict.Add("client_secret", "yOLPErKJ1atpJkqE");
+            //dict.Add("grant_type", "client_credentials");
+            //string URI = "https://haleon-api-dev.apigee.net/oauth/v2/client_credential/accesstoken";
+
+            #endregion
+
+            #region TEST
+            var dict = new Dictionary<string, string>();
+            dict.Add("client_id", "Dz74CWtywC54GGtYU4vGJI11GOLBCfOw");
+            dict.Add("client_secret", "Br0ouFDPdBw119Gx");
+            dict.Add("grant_type", "client_credentials");
+            string URI = "https://haleon-api-test.apigee.net/oauth/v2/client_credential/accesstoken";
+
+            #endregion
+
+            #region PROD
+            //var dict = new Dictionary<string, string>();
+            //dict.Add("client_id", "drDWcOAxOJJ3jpUWXhkdKpCie1RbU0nk");
+            //dict.Add("client_secret", "8YDtID3SU48BTNUr");
+            //dict.Add("grant_type", "client_credentials");
+            //string URI = "https://haleon-api-prod.apigee.net/oauth/v2/client_credential/accesstoken";
+            #endregion
+
+            var response = client.PostAsync(URI, new FormUrlEncodedContent(dict)).Result;
+            var jsonContent = response.Content.ReadAsStringAsync().Result;
+            Token tok = JsonConvert.DeserializeObject<Token>(jsonContent);
+
+            return tok.AccessToken;
+        }
+        
+        public string ServiceNowPostrequest(string firstName, string description, string serviceNowGroup, string reqType, string userId, string summary, string filetype, string filename = null, byte[] fileData = null)
+        {
+            
+            HttpClient client = new HttpClient();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+            
+            dynamic reqObject = null;
+            if (fileData == null)
+            {
+                reqObject = new
+                {
+                    cat_item = GecDataFormConstants.SNOW_CAT_ID,
+                    requested_for = userId,
+                    variables = new
+                    {
+                        comments = description,
+                        fulfillment_group = serviceNowGroup,
+                        request_type = reqType,
+                        requester_mud_id = userId,
+                        request_summary = summary
+                    }
+                };
+            }
+            else
+            {
+                reqObject = new
+                {
+                    cat_item = GecDataFormConstants.SNOW_CAT_ID,
+                    requested_for = userId,
+                    variables = new
+                    {
+                        comments = description,
+                        fulfillment_group = serviceNowGroup,
+                        request_type = reqType,
+                        requester_mud_id = userId,
+                        request_summary = summary
+                    },
+                    attachment = new
+                    {
+                        filename = filename,
+                        content_type = filetype,//filename.Contains(".zip") ? "application/zip" : "application/octet-stream",
+                        //content_text = fileData,
+                        content_base64 = fileData
+                    }
+                };
+            }
+            var json = JsonConvert.SerializeObject(reqObject);
+            var stringContent = new StringContent(json, UnicodeEncoding.UTF8, "application/json");
+
+            //New Code for APIGEE API call
+            string token = GetBearerToken();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            #region DEV
+            //string URI = "https://haleon-api-dev.apigee.net/eap-servicenow-mgmt/v1/servicenow/servicerequest/general";
+            //string ApiKey = "YpFRjwqbNhYQXTLtn0FFyrAio2rjbamf";
+            //string user_name = "user_name=afb2t2081";
+            #endregion
+
+            #region TEST
+            string URI = "https://haleon-api-test.apigee.net/eap-servicenow-mgmt/v1/servicenow/servicerequest/general";
+            string ApiKey = "Dz74CWtywC54GGtYU4vGJI11GOLBCfOw";
+            string user_name = "user_name=afb2t2081";
+            #endregion
+
+            #region PROD
+            //string URI = "https://haleon-api-prod.apigee.net/eap-servicenow-mgmt/v1/servicenow/servicerequest/general";
+            //string ApiKey = "drDWcOAxOJJ3jpUWXhkdKpCie1RbU0nk";
+            //string user_name = "user_name=afb2t2081";
+            #endregion
+
+            client.DefaultRequestHeaders.Add("x-apikey", ApiKey);
+            client.DefaultRequestHeaders.Add("user", user_name);
+                                   
+            var response = client.PostAsync(URI, stringContent).Result;
+
+            //var response = client.PostAsync(_snowReqSave + "apikey=" + _webServiceToken, stringContent).Result;
+            response.EnsureSuccessStatusCode();
+            ServiceNowAPIResponse jsonResponse = JsonConvert.DeserializeObject<ServiceNowAPIResponse>(response.Content.ReadAsStringAsync().Result.ToString());
+            return jsonResponse.result.requested_item.number.ToString();
+        }
+
+    }
+}
