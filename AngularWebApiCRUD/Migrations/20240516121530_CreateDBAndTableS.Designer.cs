@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AngularWebApiCRUD.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    [Migration("20240513113217_AddEmployeeDTO")]
-    partial class AddEmployeeDTO
+    [Migration("20240516121530_CreateDBAndTableS")]
+    partial class CreateDBAndTableS
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -39,6 +39,9 @@ namespace AngularWebApiCRUD.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Password")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")

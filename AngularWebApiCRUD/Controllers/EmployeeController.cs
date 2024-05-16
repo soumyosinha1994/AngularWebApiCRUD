@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AngularWebApiCRUD.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     [Authorize]
     public class EmployeeController : Controller
     {
@@ -27,7 +27,7 @@ namespace AngularWebApiCRUD.Controllers
             return Ok();
         }
         //[HttpGet("{id}")]
-        [HttpGet]
+        [HttpGet("GetEmployeeById")]
         public async Task<ActionResult<Employee>> GetEmployee([FromQuery] int id)
         {
           var Employee=  await _employeeService.GetEmployee(x=>x.Id==id);
@@ -53,13 +53,13 @@ namespace AngularWebApiCRUD.Controllers
             return Ok();
         }
         [HttpDelete("DeleteEmployee")]
-        public async Task<ActionResult> DeleteEmployee([FromQuery] int id,[FromBody] Employee model)
+        public async Task<ActionResult> DeleteEmployee([FromQuery] int id/*,[FromBody] Employee model*/)
         {
             var Employee = await _employeeService.GetEmployee(x => x.Id == id, true);
             if (Employee != null)
             {
-                model.Id = Employee.Id;
-                await _employeeService.DeleteEmployee(_mapper.Map<EmployeeDTO>(model));
+                //model.Id = Employee.Id;
+                await _employeeService.DeleteEmployee(_mapper.Map<EmployeeDTO>(Employee));
                 _employeeService.save();
             }
 
