@@ -44,7 +44,7 @@ namespace AngularWebApiCRUD.Controllers
             {
                 new Claim("Email",email)
             };
-            var sToken = new JwtSecurityToken(_options.Key, _options.Issuer, claims, expires: DateTime.Now.AddHours(5), signingCredentials: crendential);
+            var sToken = new JwtSecurityToken(_options.Key, _options.Issuer, claims, expires: DateTime.Now.AddMinutes(2), signingCredentials: crendential);
             var token = new JwtSecurityTokenHandler().WriteToken(sToken);
             return token;
         }
